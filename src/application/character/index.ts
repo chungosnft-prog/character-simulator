@@ -30,8 +30,8 @@ type Actions = "idle" | "walk" | "jump";
 // 可选配置项默认值
 const default_params: OptionalParams = {
 	is_first_person: false,
-	reset_position: new Vector3(-10, 2.5, 10),
-	reset_y: -25,
+	reset_position: new Vector3(0, 1, 0), // Adjusted for restaurant environment
+	reset_y: -10, // Adjusted fall height for indoor environment
 	speed: 3,
 	jump_height: 12,
 	gravity: -30
@@ -56,6 +56,10 @@ export default class Character {
 	};
 	private character!: Group;
 	character_shape!: Mesh;
+	private is_crouching = false;
+	private normal_capsule_height = 10;
+	private crouch_capsule_height = 5; // Half height when crouching
+	private base_character_scale = 0.085; // Store original scale
 	private capsule_info = {
 		radius: 0.5,
 		segment: new Line3(
@@ -120,9 +124,12 @@ export default class Character {
 
 		this._updateCharacterShape();
 
+		// Adjust camera height based on crouch state
+		const cameraHeightOffset = this.is_crouching ? -0.5 : 0;
 		this.camera.position.sub(this.orbit_controls.target);
 		this.orbit_controls.target.copy(this.character.position);
-		this.camera.position.add(this.character.position);
+		this.orbit_controls.target.y += cameraHeightOffset;
+		this.camera.position.add(this.orbit_controls.target);
 
 		this._checkCameraCollision([scene_collider]);
 
@@ -133,13 +140,16 @@ export default class Character {
 	* 添加角色模型&人物动画
 	* */
 	private async _createCharacter() {
-		const model = (await this.loader.gltf_loader.loadAsync(CHARACTER_URL)).scene;
-		const walk = (await this.loader.fbx_loader.loadAsync(CHARACTER_WALK_ACTION_URL)).animations[0];
-		const idle = (await this.loader.fbx_loader.loadAsync(CHARACTER_IDLE_ACTION_URL)).animations[0];
-		const jump = (await this.loader.fbx_loader.loadAsync(CHARACTER_JUMP_ACTION_URL)).animations[0];
-		this.character = model;
+		try {
+			const model = (await this.loader.gltf_loader.loadAsync(CHARACTER_URL)).scene;
+			const walk = (await this.loader.fbx_loader.loadAsync(CHARACTER_WALK_ACTION_URL)).animations[0];
+			const idle = (await this.loader.fbx_loader.loadAsync(CHARACTER_IDLE_ACTION_URL)).animations[0];
+			const jump = (await this.loader.fbx_loader.loadAsync(CHARACTER_JUMP_ACTION_URL)).animations[0];
+			this.character = model;
 
-		this.character.scale.set(0.1, 0.1, 0.1);
+		// Character scale reduced by 15% (0.1 * 0.85 = 0.085)
+		this.base_character_scale = 0.085;
+		this.character.scale.set(this.base_character_scale, this.base_character_scale, this.base_character_scale);
 
 		this.character.animations = [walk, idle, jump];
 		this.mixer = new AnimationMixer(this.character);
@@ -163,6 +173,11 @@ export default class Character {
 		this._createCharacterShape();
 
 		this.reset();
+		} catch (error) {
+			console.error("Failed to load character model:", error);
+			// Emit error event for UI handling
+			this.emitter.$emit("character_load_error", error);
+		}
 	}
 
 	/*
@@ -177,6 +192,7 @@ export default class Character {
 			})
 		);
 
+		// Always hide debug shape in production - can be toggled with a debug flag if needed
 		this.character_shape.visible = false;
 
 		this.scene.add(this.character_shape);
@@ -187,8 +203,21 @@ export default class Character {
 	* */
 	private _updateCharacterShape() {
 		if (this.character_shape && this.character) {
-			this.character_shape.position.copy(this.character.position.clone());
-			this.character_shape.translateY(-0.5);
+			// Reuse temp_vector instead of cloning to reduce allocations
+			this.temp_vector.copy(this.character.position);
+			
+			// Adjust height offset based on crouch state
+			const heightOffset = this.is_crouching ? 0.25 : 0.5;
+			this.temp_vector.y -= heightOffset;
+			
+			// Update shape height based on crouch state
+			if (this.is_crouching) {
+				this.character_shape.scale.y = 0.6; // Make collision box shorter when crouching
+			} else {
+				this.character_shape.scale.y = 1.0; // Normal height
+			}
+			
+			this.character_shape.position.copy(this.temp_vector);
 		}
 	}
 
@@ -198,6 +227,9 @@ export default class Character {
 		}
 		if (key_code === "KeyV") {
 			this._switchPersonView();
+		}
+		if (key_code === "KeyC") {
+			this._toggleCrouch();
 		}
 	}
 
@@ -228,26 +260,27 @@ export default class Character {
 
 		this.updateAction(delta_time);
 
-		// 控制移动
+		// 控制移动 - reduce speed when crouching
+		const current_speed = this.is_crouching ? this.speed * 0.5 : this.speed;
 		const angle = this.orbit_controls.getAzimuthalAngle();
 		if (this.control.key_status["KeyW"]) {
 			this.temp_vector.set(0, 0, -1).applyAxisAngle(this.up_vector, angle);
-			this.character.position.addScaledVector(this.temp_vector, this.speed * delta_time);
+			this.character.position.addScaledVector(this.temp_vector, current_speed * delta_time);
 		}
 
 		if (this.control.key_status["KeyS"]) {
 			this.temp_vector.set(0, 0, 1).applyAxisAngle(this.up_vector, angle);
-			this.character.position.addScaledVector(this.temp_vector, this.speed * delta_time);
+			this.character.position.addScaledVector(this.temp_vector, current_speed * delta_time);
 		}
 
 		if (this.control.key_status["KeyA"]) {
 			this.temp_vector.set(-1, 0, 0).applyAxisAngle(this.up_vector, angle);
-			this.character.position.addScaledVector(this.temp_vector, this.speed * delta_time);
+			this.character.position.addScaledVector(this.temp_vector, current_speed * delta_time);
 		}
 
 		if (this.control.key_status["KeyD"]) {
 			this.temp_vector.set(1, 0, 0).applyAxisAngle(this.up_vector, angle);
-			this.character.position.addScaledVector(this.temp_vector, this.speed * delta_time);
+			this.character.position.addScaledVector(this.temp_vector, current_speed * delta_time);
 		}
 
 		this.character.updateMatrixWorld();
@@ -333,6 +366,10 @@ export default class Character {
 		this.temp_mat.copy(scene_collider.matrixWorld).invert();
 		this.temp_segment.copy(capsule_info.segment);
 
+		// Update capsule height based on crouch state
+		const capsule_height = this.is_crouching ? this.crouch_capsule_height : this.normal_capsule_height;
+		this.temp_segment.end.y = -capsule_height;
+
 		// 获取胶囊体在对撞机局部空间中的位置
 		this.temp_segment.start.applyMatrix4(this.character.matrixWorld).applyMatrix4(this.temp_mat);
 		this.temp_segment.end.applyMatrix4(this.character.matrixWorld).applyMatrix4(this.temp_mat);
@@ -395,16 +432,16 @@ export default class Character {
 	* */
 	private _checkCameraCollision(colliders: Object3D[]) {
 		if (!this.is_first_person) {
-			const ray_direction = new Vector3();
-			ray_direction.subVectors(this.camera.position, this.character.position).normalize();
-			this.camera_raycaster.set(this.character.position, ray_direction);
+			// Reuse temp vectors to reduce allocations
+			this.temp_vector.subVectors(this.camera.position, this.character.position).normalize();
+			this.camera_raycaster.set(this.character.position, this.temp_vector);
 			const intersects = this.camera_raycaster.intersectObjects(colliders);
 			if (intersects.length) {
 				// 找到碰撞点后还需要往前偏移一点，不然还是可能会看到穿模
-				const offset = new Vector3(); // 定义一个向前移动的偏移量
-				offset.copy(ray_direction).multiplyScalar(-0.5); // 计算偏移量，这里的distance是想要向前移动的距离
-				const new_position = new Vector3().addVectors(intersects[0].point, offset); // 计算新的相机位置
-				this.camera.position.copy(new_position);
+				// Reuse temp_vector2 for offset calculation
+				this.temp_vector2.copy(this.temp_vector).multiplyScalar(-0.5);
+				this.temp_vector.addVectors(intersects[0].point, this.temp_vector2);
+				this.camera.position.copy(this.temp_vector);
 
 				this.orbit_controls.minDistance = 0;
 			} else {
@@ -432,6 +469,18 @@ export default class Character {
 	}
 
 	/*
+	* Teleport character to a specific position
+	* */
+	teleport(destination: Vector3) {
+		this.velocity.set(0, 0, 0);
+		this.character.position.copy(destination);
+		this.camera.position.sub(this.orbit_controls.target);
+		this.orbit_controls.target.copy(this.character.position);
+		this.camera.position.add(this.character.position);
+		this.orbit_controls.update();
+	}
+
+	/*
 	* 切换视角
 	* */
 	private _switchPersonView() {
@@ -448,9 +497,26 @@ export default class Character {
 	* 角色跳跃
 	* */
 	private _characterJump() {
-		if (this.player_is_on_ground) {
+		if (this.player_is_on_ground && !this.is_crouching) {
 			this.velocity.y = this.jump_height;
 			this.player_is_on_ground = false;
+		}
+	}
+
+	/*
+	* 切换蹲下状态
+	* */
+	private _toggleCrouch() {
+		// Only allow crouching when on ground
+		if (this.player_is_on_ground) {
+			this.is_crouching = !this.is_crouching;
+			
+			// Scale character model when crouching (preserve base scale)
+			if (this.is_crouching) {
+				this.character.scale.y = this.base_character_scale * 0.7; // Make character visually shorter
+			} else {
+				this.character.scale.y = this.base_character_scale; // Restore normal height
+			}
 		}
 	}
 }

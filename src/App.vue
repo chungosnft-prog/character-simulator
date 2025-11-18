@@ -8,6 +8,8 @@
 
   <notify-tips ref="notify_ref" />
 
+  <game-ui v-if="gameStarted" />
+
   <load-progress
     v-model="percentage"
     :text="loading_text"
@@ -19,17 +21,19 @@
 import LoadProgress from "@/components/LoadProgress.vue";
 import NesGameDialog from "@/components/NesGameDialog.vue";
 import NotifyTips from "@/components/NotifyTips.vue";
+import GameUI from "@/components/GameUI.vue";
 import Core from "@/application/core";
-import {onMounted, ref} from "vue";
+import {onMounted, onBeforeUnmount, ref} from "vue";
 import {ON_INTERSECT_TRIGGER, ON_INTERSECT_TRIGGER_STOP, ON_KEY_DOWN, ON_LOAD_PROGRESS} from "@/application/Constants";
 import type {InteractionMesh} from "@/application/interactionDetection/types";
 
 const notify_ref = ref<InstanceType<typeof NotifyTips>>();
 const game_dialog_ref = ref<InstanceType<typeof NesGameDialog>>();
 
-// 加载相关
+// Loading related
 const percentage = ref(0);
-const loading_text = ref("加载中...");
+const loading_text = ref("Loading...");
+const gameStarted = ref(false);
 
 let core: Core | undefined = undefined;
 
@@ -75,6 +79,12 @@ const handleInteraction = (intersect: InteractionMesh) => {
 	case "music":
 		core.world.audio.togglePlayAudio();
 		break;
+	case "portal":
+		// Teleport player to destination
+		if (intersect.userData.destination) {
+			core.world.character.teleport(intersect.userData.destination);
+		}
+		break;
 	}
 };
 
@@ -88,27 +98,28 @@ const onCloseNesGameDialog = () => {
 const onLoadProgress = ([{url, loaded, total}]: [{url: string, loaded: number, total: number}]) => {
 	percentage.value = +(loaded / total * 100).toFixed(2);
 	if (/.*\.(blob|glb|fbx)$/i.test(url)) {
-		loading_text.value = "加载模型中...";
+		loading_text.value = "Loading models...";
 	}
 	if (url.includes("wasm")) {
-		loading_text.value = "加载wasm中...";
+		loading_text.value = "Loading WASM...";
 	}
 	if (/.*\.(jpg|png|jpeg)$/i.test(url)) {
-		loading_text.value = "加载图片素材中...";
+		loading_text.value = "Loading textures...";
 	}
 	if (/.*\.(m4a|mp3)$/i.test(url)) {
-		loading_text.value = "加载声音资源中...";
+		loading_text.value = "Loading audio...";
 	}
 };
 
 const onEnterApp = () => {
 	if (core) {
-		// 进入时才允许控制角色
+		// Enable character control when entering
 		core.control.enabled();
-		// 音频自动播放受限于网页的初始化交互，因此进入后播放即可
+		// Audio autoplay is limited by browser initialization interaction, so play after entry
 		core.world.audio.playAudio();
-		// 注销应用加载监听事件
+		// Unregister loading progress event listener
 		core.emitter.$off(ON_LOAD_PROGRESS);
+		gameStarted.value = true;
 	}
 };
 
@@ -120,6 +131,19 @@ onMounted(() => {
 	core.emitter.$on(ON_INTERSECT_TRIGGER_STOP, onIntersectTriggerStop);
 	core.emitter.$on(ON_KEY_DOWN, onKeyDown);
 	core.emitter.$on(ON_LOAD_PROGRESS, onLoadProgress);
+});
+
+onBeforeUnmount(() => {
+	if (core) {
+		// Cleanup event listeners to prevent memory leaks
+		core.emitter.$off(ON_INTERSECT_TRIGGER, onIntersectTrigger);
+		core.emitter.$off(ON_INTERSECT_TRIGGER_STOP, onIntersectTriggerStop);
+		core.emitter.$off(ON_KEY_DOWN, onKeyDown);
+		core.emitter.$off(ON_LOAD_PROGRESS, onLoadProgress);
+		
+		// Dispose of core resources
+		core.dispose?.();
+	}
 });
 </script>
 

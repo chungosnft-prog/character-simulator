@@ -1,7 +1,7 @@
 /*
 * Model Resources
 * */
-export const COLLISION_SCENE_URL = new URL("../assets/models/playground.glb", import.meta.url).href;
+export const COLLISION_SCENE_URL = "https://tysp4nfcviytulcg.public.blob.vercel-storage.com/resturant%20scan%20nov%2013.glb";
 export const CHARACTER_URL = new URL("../assets/models/character.glb", import.meta.url).href;
 export const CHARACTER_IDLE_ACTION_URL = new URL("../assets/models/character-idle.fbx", import.meta.url).href;
 export const CHARACTER_WALK_ACTION_URL = new URL("../assets/models/character-walk.fbx", import.meta.url).href;

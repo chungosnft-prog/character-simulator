@@ -1,6 +1,6 @@
 import type {Mesh, Vector3} from "three";
 
-export type InteractionType = "game" | "music"
+export type InteractionType = "game" | "music" | "portal"
 
 export type InteractionMesh = Mesh & {
 	userData: {
@@ -8,6 +8,7 @@ export type InteractionMesh = Mesh & {
 		title?: string,
 		url?: string,
 		size?: Vector3,
-		position?: Vector3
+		position?: Vector3,
+		destination?: Vector3 // For portal teleportation
 	}
 }
