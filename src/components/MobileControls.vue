@@ -20,6 +20,19 @@
       </div>
     </div>
 
+    <!-- View Button -->
+    <button
+      class="view-btn"
+      @touchstart="onViewStart"
+      @touchend="onViewEnd"
+      @touchcancel="onViewEnd"
+      @mousedown="onViewStart"
+      @mouseup="onViewEnd"
+      @mouseleave="onViewEnd"
+    >
+      <span>View</span>
+    </button>
+
     <!-- Interact Button -->
     <button
       class="interact-btn"
@@ -218,6 +231,18 @@ const onInteractEnd = (e: TouchEvent | MouseEvent) => {
   emitKeyUp("KeyF");
 };
 
+const onViewStart = (e: TouchEvent | MouseEvent) => {
+  e.preventDefault();
+  e.stopPropagation();
+  emitKeyDown("KeyV");
+};
+
+const onViewEnd = (e: TouchEvent | MouseEvent) => {
+  e.preventDefault();
+  e.stopPropagation();
+  emitKeyUp("KeyV");
+};
+
 onMounted(() => {
   detectMobile();
   window.addEventListener("resize", detectMobile);
@@ -231,6 +256,7 @@ onBeforeUnmount(() => {
     emitKeyUp("KeyA");
     emitKeyUp("KeyD");
     emitKeyUp("KeyF");
+    emitKeyUp("KeyV");
   }
 });
 </script>
@@ -287,6 +313,41 @@ onBeforeUnmount(() => {
   transition: opacity 0.2s;
 }
 
+.view-btn {
+  position: fixed;
+  bottom: 100px;
+  right: 30px;
+  min-width: 100px;
+  height: 60px;
+  border: none;
+  border-radius: 12px;
+  background: rgba(156, 39, 176, 0.9);
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 20px;
+  -webkit-tap-highlight-color: rgba(255, 255, 255, 0.3);
+}
+
+.view-btn:active {
+  transform: scale(0.95);
+  background: rgba(156, 39, 176, 0.7);
+}
+
+.view-btn span {
+  pointer-events: none;
+}
+
 .interact-btn {
   position: fixed;
   bottom: 30px;
@@ -333,6 +394,14 @@ onBeforeUnmount(() => {
   .joystick-stick {
     width: 40px;
     height: 40px;
+  }
+  
+  .view-btn {
+    bottom: 90px;
+    right: 20px;
+    min-width: 90px;
+    height: 50px;
+    font-size: 14px;
   }
   
   .interact-btn {
