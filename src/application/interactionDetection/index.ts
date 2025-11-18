@@ -1,7 +1,7 @@
 import {Scene, BoxGeometry, BufferGeometry, Matrix4, Mesh, MeshBasicMaterial, Vector3, RingGeometry, MeshStandardMaterial, DoubleSide, Group} from "three";
 import {acceleratedRaycast, computeBoundsTree, disposeBoundsTree} from "three-mesh-bvh";
 import {isBVHGeometry} from "../utils/typeAssert";
-import {NES_GAME_SRC1, NES_GAME_SRC2, NES_GAME_SRC3, NES_GAME_SRC4, ON_INTERSECT_TRIGGER, ON_INTERSECT_TRIGGER_STOP} from "../Constants";
+import {ON_INTERSECT_TRIGGER, ON_INTERSECT_TRIGGER_STOP} from "../Constants";
 import type {InteractionMesh} from "./types";
 import Emitter from "../emitter";
 
@@ -27,52 +27,18 @@ export default class InteractionDetection {
 
 		private interaction_boxes: InteractionMesh["userData"][] = [
 		{
-			type: "game",
-			title: "Super Mario Bros",
-			position: new Vector3(-4, 1, 0.9),
-			size: new Vector3(1.5, 2, 1.2),
-			url: NES_GAME_SRC1
-		},
-		{
-			type: "game",
-			title: "Super Mario Bros 3",
-			position: new Vector3(-4, 1, -0.87),
-			size: new Vector3(1.5, 2, 1.2),
-			url: NES_GAME_SRC2
-		},
-		{
-			type: "game",
-			title: "Mighty Final Fight",
-			position: new Vector3(-4, 1, -2.67),
-			size: new Vector3(1.5, 2, 1.2),
-			url: NES_GAME_SRC3
-		},
-		{
-			type: "game",
-			title: "Mitsume ga Tooru",
-			position: new Vector3(-4, 1, -4.52),
-			size: new Vector3(1.5, 2, 1.2),
-			url: NES_GAME_SRC4
-		},
-		{
-			type: "music",
-			title: "当前播放：Midnight City🎵",
-			position: new Vector3(0.5, 1.5, 9),
-			size: new Vector3(4, 2, 4),
-		},
-		{
 			type: "portal",
 			title: "Go to Lower Floor",
-			position: new Vector3(0, 0.5, 0), // Portal on upper floor, adjust as needed
-			size: new Vector3(2, 3, 0.5), // Portal size
-			destination: new Vector3(0, -3, 0) // Lower floor position, adjust Y based on actual model
+			position: new Vector3(0, 0.5, 0),
+			size: new Vector3(2, 3, 0.5),
+			destination: new Vector3(0, -3, 0)
 		},
 		{
 			type: "portal",
 			title: "Go to Upper Floor",
-			position: new Vector3(0, -2.5, 0), // Portal on lower floor, adjust as needed
-			size: new Vector3(2, 3, 0.5), // Portal size
-			destination: new Vector3(0, 1, 0) // Upper floor position (back to start)
+			position: new Vector3(0, -2.5, 0),
+			size: new Vector3(2, 3, 0.5),
+			destination: new Vector3(0, 1, 0)
 		}
 	];
 

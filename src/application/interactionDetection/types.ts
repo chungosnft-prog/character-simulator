@@ -1,6 +1,6 @@
 import type {Mesh, Vector3} from "three";
 
-export type InteractionType = "game" | "music" | "portal"
+export type InteractionType = "portal"
 
 export type InteractionMesh = Mesh & {
 	userData: {

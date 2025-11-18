@@ -1,7 +1,6 @@
 import Environment from "../environment";
 import Character from "../character";
 import InteractionDetection from "../interactionDetection";
-import Audio from "../audio";
 import {PerspectiveCamera, Scene} from "three";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
 import Control from "../control";
@@ -28,7 +27,6 @@ export default class World {
 	environment: Environment;
 	character: Character;
 	interaction_detection: InteractionDetection;
-	audio: Audio;
 
 	constructor({
 		scene,
@@ -63,12 +61,6 @@ export default class World {
 		this.interaction_detection = new InteractionDetection({
 			scene: this.scene,
 			emitter: this.emitter
-		});
-
-		this.audio = new Audio({
-			scene: this.scene,
-			camera: this.camera,
-			loader: this.loader
 		});
 	}
 

@@ -24,15 +24,3 @@ export const ON_KEY_UP = "on-key-up";
 export const ON_INTERSECT_TRIGGER = "on-intersect-trigger";
 export const ON_INTERSECT_TRIGGER_STOP = "on-intersect-trigger-stop";
 
-/*
-* NES Game Resources
-* */
-export const NES_GAME_SRC1 = new URL("../assets/nes/Super Mario Bros (JU).nes", import.meta.url).href;
-export const NES_GAME_SRC2 = new URL("../assets/nes/Super Mario Bros 3.nes", import.meta.url).href;
-export const NES_GAME_SRC3 = new URL("../assets/nes/Mighty Final Fight (USA).nes", import.meta.url).href;
-export const NES_GAME_SRC4 = new URL("../assets/nes/Mitsume ga Tooru (Japan).nes", import.meta.url).href;
-
-/*
-* Audio  Resources
-* */
-export const AUDIO_URL = new URL("../assets/audio/Midnight City.m4a", import.meta.url).href;

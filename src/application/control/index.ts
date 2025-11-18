@@ -77,4 +77,19 @@ export default class Control {
 	enabled() {
 		this.is_enabled = true;
 	}
+
+	// Methods for mobile/touch controls to simulate key presses
+	simulateKeyDown(key: Keys) {
+		if (this.is_enabled && this.isAllowKey(key)) {
+			this.key_status[key] = true;
+			this.emitter.$emit(ON_KEY_DOWN, key);
+		}
+	}
+
+	simulateKeyUp(key: Keys) {
+		if (this.is_enabled && this.isAllowKey(key)) {
+			this.key_status[key] = false;
+			this.emitter.$emit(ON_KEY_UP, key);
+		}
+	}
 }

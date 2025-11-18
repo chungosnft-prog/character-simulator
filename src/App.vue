@@ -1,14 +1,11 @@
 <template>
   <div id="webgl" />
 
-  <nes-game-dialog
-    ref="game_dialog_ref"
-    @on-close-dialog="onCloseNesGameDialog"
-  />
-
   <notify-tips ref="notify_ref" />
 
   <game-ui v-if="gameStarted" />
+  
+  <mobile-controls v-if="gameStarted" :core="core" />
 
   <load-progress
     v-model="percentage"
@@ -19,16 +16,15 @@
 
 <script setup lang="ts">
 import LoadProgress from "@/components/LoadProgress.vue";
-import NesGameDialog from "@/components/NesGameDialog.vue";
 import NotifyTips from "@/components/NotifyTips.vue";
 import GameUI from "@/components/GameUI.vue";
+import MobileControls from "@/components/MobileControls.vue";
 import Core from "@/application/core";
 import {onMounted, onBeforeUnmount, ref} from "vue";
 import {ON_INTERSECT_TRIGGER, ON_INTERSECT_TRIGGER_STOP, ON_KEY_DOWN, ON_LOAD_PROGRESS} from "@/application/Constants";
 import type {InteractionMesh} from "@/application/interactionDetection/types";
 
 const notify_ref = ref<InstanceType<typeof NotifyTips>>();
-const game_dialog_ref = ref<InstanceType<typeof NesGameDialog>>();
 
 // Loading related
 const percentage = ref(0);
@@ -67,31 +63,12 @@ const handleInteraction = (intersect: InteractionMesh) => {
 	if (!core) return;
 
 	switch (intersect.userData.type) {
-	case "game":
-		// 处于nes游戏交互中，需禁用core.control中的按键触发，避免持续驱动character更新
-		core.control.disabled();
-		// 重置按键状态，防止键盘某个键锁死，持续驱动character更新
-		core.control.resetStatus();
-		// 进入游戏交互中后，关闭交互检测，优化性能
-		core.world.interaction_detection.disableDetection();
-		game_dialog_ref.value!.openDialog(intersect.userData.title!, intersect.userData.url!);
-		break;
-	case "music":
-		core.world.audio.togglePlayAudio();
-		break;
 	case "portal":
 		// Teleport player to destination
 		if (intersect.userData.destination) {
 			core.world.character.teleport(intersect.userData.destination);
 		}
 		break;
-	}
-};
-
-const onCloseNesGameDialog = () => {
-	if (core) {
-		core.control.enabled();
-		core.world.interaction_detection.enableDetection();
 	}
 };
 
@@ -106,17 +83,12 @@ const onLoadProgress = ([{url, loaded, total}]: [{url: string, loaded: number, t
 	if (/.*\.(jpg|png|jpeg)$/i.test(url)) {
 		loading_text.value = "Loading textures...";
 	}
-	if (/.*\.(m4a|mp3)$/i.test(url)) {
-		loading_text.value = "Loading audio...";
-	}
 };
 
 const onEnterApp = () => {
 	if (core) {
 		// Enable character control when entering
 		core.control.enabled();
-		// Audio autoplay is limited by browser initialization interaction, so play after entry
-		core.world.audio.playAudio();
 		// Unregister loading progress event listener
 		core.emitter.$off(ON_LOAD_PROGRESS);
 		gameStarted.value = true;
